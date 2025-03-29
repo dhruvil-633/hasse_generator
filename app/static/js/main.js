@@ -123,7 +123,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!data?.nodes || !data?.edges) {
             throw new Error('Invalid diagram data from server');
         }
-
+    
         container.innerHTML = '';
         
         const nodes = new vis.DataSet(data.nodes.map(node => ({
@@ -143,7 +143,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         })));
-
+    
         const edges = new vis.DataSet(data.edges.map(edge => ({
             from: edge.from,
             to: edge.to,
@@ -152,13 +152,13 @@ document.addEventListener('DOMContentLoaded', function() {
             color: '#2c3e50',
             smooth: { type: 'curvedCW', roundness: 0.2 }
         })));
-
+    
         if (network) network.destroy();
         
         network = new vis.Network(container, { nodes, edges }, {
             layout: {
                 hierarchical: {
-                    direction: 'UD',
+                    direction: 'DU', // Changed from 'UD' to 'DU' (Down-Up)
                     sortMethod: 'directed',
                     nodeSpacing: 150,
                     levelSeparation: 100
