@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Constants and DOM Elements
+    // DOM Elements
     const container = document.getElementById('diagram-container');
     const elementsInput = document.getElementById('elements');
     const relationsInput = document.getElementById('relations');
@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const loadExampleBtn = document.getElementById('load-example');
     const clearBtn = document.getElementById('clear-btn');
     const fitBtn = document.getElementById('fit-btn');
+    const exportBtn = document.getElementById('export-btn');
     let network = null;
 
     // Event Listeners
@@ -14,8 +15,9 @@ document.addEventListener('DOMContentLoaded', function() {
     loadExampleBtn.addEventListener('click', loadExample);
     clearBtn.addEventListener('click', clearAll);
     if (fitBtn) fitBtn.addEventListener('click', fitToView);
+    if (exportBtn) exportBtn.addEventListener('click', exportAsPNG);
 
-    // Main Diagram Generation Function
+    // Main Functions
     async function generateDiagram() {
         try {
             setLoadingState(true);
@@ -34,7 +36,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Input Processing Functions
     function getElements() {
         const input = elementsInput.value.trim();
         if (!input) throw new Error("Please enter at least one element");
@@ -43,9 +44,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .map(e => e.trim())
             .filter(e => e.length > 0);
             
-        if (elements.length === 0) {
-            throw new Error("Please enter valid elements");
-        }
+        if (elements.length === 0) throw new Error("Please enter valid elements");
         
         const uniqueElements = [...new Set(elements)];
         if (uniqueElements.length !== elements.length) {
@@ -65,26 +64,17 @@ document.addEventListener('DOMContentLoaded', function() {
             .filter(line => line.length > 0)
             .map((line, i) => {
                 try {
-                    // Handle multiple relation formats
-                    let separator = '≤';
-                    if (line.includes('<=')) separator = '<=';
-                    
+                    let separator = line.includes('<=') ? '<=' : '≤';
                     const parts = line.split(separator).map(p => p.trim());
+                    
                     if (parts.length !== 2 || !parts[0] || !parts[1]) {
                         throw new Error(`Invalid format in line ${i+1}`);
                     }
                     
                     const [from, to] = parts;
-                    
-                    if (from === to) {
-                        throw new Error(`Self-loop not allowed: "${from} ≤ ${to}"`);
-                    }
-                    if (!elementSet.has(from)) {
-                        throw new Error(`"${from}" not in elements`);
-                    }
-                    if (!elementSet.has(to)) {
-                        throw new Error(`"${to}" not in elements`);
-                    }
+                    if (from === to) throw new Error(`Self-loop not allowed: "${from} ≤ ${to}"`);
+                    if (!elementSet.has(from)) throw new Error(`"${from}" not in elements`);
+                    if (!elementSet.has(to)) throw new Error(`"${to}" not in elements`);
                     
                     return { from, to, original: line };
                 } catch (err) {
@@ -93,7 +83,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
-    // Server Communication
     async function sendToServer(elements, relations) {
         try {
             const response = await fetch('/generate', {
@@ -118,7 +107,7 @@ document.addEventListener('DOMContentLoaded', function() {
             throw new Error(`Request failed: ${error.message}`);
         }
     }
-    // Visualization Functions
+
     function renderDiagram(data) {
         if (!data?.nodes || !data?.edges) {
             throw new Error('Invalid diagram data from server');
@@ -158,7 +147,7 @@ document.addEventListener('DOMContentLoaded', function() {
         network = new vis.Network(container, { nodes, edges }, {
             layout: {
                 hierarchical: {
-                    direction: 'DU', // Changed from 'UD' to 'DU' (Down-Up)
+                    direction: 'DU',
                     sortMethod: 'directed',
                     nodeSpacing: 150,
                     levelSeparation: 100
@@ -176,7 +165,63 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // UI Helper Functions
+    function exportAsPNG() {
+        if (!network) {
+            showError("Please generate a diagram first");
+            return;
+        }
+
+        try {
+            // Get the visible canvas
+            const canvas = document.querySelector('#diagram-container canvas');
+            if (!canvas) throw new Error("Could not find diagram canvas");
+            
+            // Create high-quality export
+            const tempCanvas = document.createElement('canvas');
+            const ctx = tempCanvas.getContext('2d');
+            const scale = 2; // 2x resolution
+            
+            tempCanvas.width = canvas.width * scale;
+            tempCanvas.height = canvas.height * scale;
+            
+            // White background
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+            
+            // Draw diagram
+            ctx.drawImage(canvas, 0, 0, canvas.width, canvas.height, 
+                        0, 0, tempCanvas.width, tempCanvas.height);
+
+            // Create download
+            const link = document.createElement('a');
+            link.download = `hasse-diagram-${new Date().getTime()}.png`;
+            link.href = tempCanvas.toDataURL('image/png');
+            document.body.appendChild(link);
+            link.click();
+            
+            // Clean up
+            setTimeout(() => {
+                document.body.removeChild(link);
+                URL.revokeObjectURL(link.href);
+            }, 100);
+            
+        } catch (error) {
+            console.error("Export failed:", error);
+            showError(`Export failed: ${error.message}`);
+            
+            // Fallback using html2canvas if available
+            if (typeof html2canvas !== 'undefined') {
+                html2canvas(document.getElementById('diagram-container')).then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = 'hasse-diagram-fallback.png';
+                    link.href = canvas.toDataURL();
+                    link.click();
+                });
+            }
+        }
+    }
+
+    // Helper Functions
     function setLoadingState(isLoading) {
         generateBtn.disabled = isLoading;
         generateBtn.innerHTML = isLoading 
@@ -199,8 +244,7 @@ document.addEventListener('DOMContentLoaded', function() {
             setTimeout(() => errorDiv.remove(), 300);
         });
         
-        const errorContainer = document.getElementById('error-container');
-        errorContainer.prepend(errorDiv);
+        document.getElementById('error-container').prepend(errorDiv);
         
         setTimeout(() => {
             if (errorDiv.parentNode) {
@@ -214,7 +258,6 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('error-container').innerHTML = '';
     }
 
-    // Example and Utility Functions
     function loadExample() {
         elementsInput.value = 'a, b, c, d, e';
         relationsInput.value = [
