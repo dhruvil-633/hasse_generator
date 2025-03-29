@@ -1,3 +1,4 @@
 Flask==2.3.2
 python-dotenv==1.0.0
 networkx==3.1  # For graph algorithms
+gunicorn==20.1.0
