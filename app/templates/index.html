@@ -1,19 +1,63 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="input-section">
-    <h2>Enter Your Poset</h2>
+<section class="input-section card">
+    <h2 class="section-title">Enter Your Poset</h2>
     <div class="input-group">
-        <label for="elements">Elements (comma separated):</label>
-        <input type="text" id="elements" placeholder="a, b, c, d">
+        <label for="elements" class="input-label">Elements (comma separated)</label>
+        <input type="text" id="elements" class="text-input" placeholder="e.g., a, b, c, d">
+        <p class="input-hint">Enter all elements of your poset</p>
     </div>
+    
     <div class="input-group">
-        <label for="relations">Relations (one per line, format: a ≤ b):</label>
-        <textarea id="relations" rows="5" placeholder="a ≤ b&#10;b ≤ c"></textarea>
+        <label for="relations" class="input-label">Relations (one per line)</label>
+        <textarea id="relations" class="text-input" rows="5" 
+                  placeholder="e.g., a ≤ b&#10;b ≤ c"></textarea>
+        <p class="input-hint">Format: element1 ≤ element2 (one relation per line)</p>
     </div>
-    <button id="generate-btn">Generate Hasse Diagram</button>
-</div>
-<div class="visualization-section">
-    <div id="diagram-container"></div>
-</div>
+    
+    <div class="button-group">
+        <button id="generate-btn" class="btn btn-primary">
+            <span class="btn-icon">📊</span>
+            Generate Diagram
+        </button>
+        <button id="load-example" class="btn btn-secondary">
+            <span class="btn-icon">🔄</span>
+            Load Example
+        </button>
+        <button id="clear-btn" class="btn btn-danger">
+            <span class="btn-icon">🗑️</span>
+            Clear All
+        </button>
+    </div>
+</section>
+
+<section class="visualization-section card">
+    <div class="section-header">
+        <h3 class="section-title">Hasse Diagram</h3>
+        <div class="section-controls">
+            <button id="fit-btn" class="btn btn-small">
+                <span class="btn-icon">🔍</span>
+                Fit to View
+            </button>
+            <button id="export-btn" class="btn btn-small">
+                <span class="btn-icon">💾</span>
+                Export
+            </button>
+        </div>
+    </div>
+    
+    <div id="diagram-container" class="diagram-container">
+        <div class="empty-state">
+            <div class="empty-icon">📈</div>
+            <h4>No diagram generated yet</h4>
+            <p>Enter your poset elements and relations above</p>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis-network.min.js"></script>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
 {% endblock %}

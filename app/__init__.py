@@ -1,10 +1,18 @@
 from flask import Flask
 
-def create_app(config_class='config'):
+def create_app():
     app = Flask(__name__)
-    app.config.from_object(config_class)
-
-    from app import routes
-    app.register_blueprint(routes.bp)
-
+    
+    # Configuration
+    app.config.from_object('config.Config')
+    
+    # Import and register blueprint
+    from app.routes import bp
+    app.register_blueprint(bp, url_prefix='/')
+    
+    # Simple test route
+    @app.route('/ping')
+    def ping():
+        return "pong", 200
+        
     return app
